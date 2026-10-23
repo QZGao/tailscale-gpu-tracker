@@ -1,12 +1,24 @@
-# Tailscale GPU Tracker
+<p align="center">
+  <img src="Resources/AppIcon.svg" width="128" height="128" alt="Tailscale GPU Tracker icon">
+  <h1 align="center">Tailscale GPU Tracker
+    <span style="display: block">
+      <img src="https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fraw.githubusercontent.com%2FQZGao%2Ftailscale-gpu-tracker%2Frefs%2Fheads%2Fmain%2FResources%2FInfo.plist&search=%3Ckey%3ECFBundleShortVersionString%3C%2Fkey%3E%3Cstring%3E(.*%3F)%3C%2Fstring%3E&replace=v%241&style=plastic&label=version&color=orange" alt="package version">
+      <img src="https://github.com/QZGao/tailscale-gpu-tracker/actions/workflows/test.yml/badge.svg" alt="test workflow badge">
+    </span>
+  </h1>
+</p>
 
-A native macOS app for checking NVIDIA GPU usage across your Tailscale machines.
+Monitor NVIDIA GPU usage across your Tailscale machines from a native macOS window and menu bar.
 
-The app reads the installed Tailscale client's machine list. Enter each machine's SSH username and check its box to start monitoring. Click a machine name to set an alias. Aliases, usernames, and monitoring selections are saved on this Mac.
+![Main window showing selected machines and GPU utilization](assets/screenshots/main-window.png)
 
-GPU usage refreshes every minute. Click a checked row's GPU cell for an immediate refresh without changing the automatic schedule. While refreshing, a spinner precedes the previous reading and the menu bar keeps its previous percentage. The total is the arithmetic mean of all GPU utilization readings. Each circle shows one GPU's percentage; hover over it for the GPU index. If a GPU cannot report utilization, its circle and the total show an unavailable value.
+Select machines to monitor, enter their SSH usernames, and optionally give them aliases. The table shows each machine's average utilization and a ring for every GPU. Readings refresh every minute; click a GPU cell for an immediate update. Previous readings remain visible while refreshing, and connection errors appear in the row.
 
-The menu bar shows each selected machine's initial in a box followed by its percentage, with `·` between machines. Aliases take precedence. The first query shows `…`; a failed query shows `!`. Open the menu for details or to reopen the window. Closing the window keeps monitoring active. Reopening the app brings its existing window forward. Drag a window edge or corner to resize it.
+<p align="center">
+  <img src="assets/screenshots/menu-bar.png" width="258" alt="Menu bar showing GPU utilization for selected machines">
+</p>
+
+Monitoring continues when the window is closed. Aliases, usernames, and selected machines are saved locally.
 
 ## Requirements
 
@@ -19,21 +31,19 @@ The app uses your current Tailscale session and system SSH client. For machines 
 
 The SSH username identifies the remote account, such as `root` or `ubuntu`. SSH host keys identify the server. [Tailscale SSH](https://tailscale.com/docs/features/tailscale-ssh) uses your Tailscale identity to authorize access to the requested account.
 
-## Build and run
+## Install
 
-With the Xcode command line tools installed:
+Download the Apple Silicon app from [GitHub Releases](https://github.com/QZGao/tailscale-gpu-tracker/releases), unzip it, and move Tailscale GPU Tracker.app to Applications.
 
-```sh
-make build
-open "build/Tailscale GPU Tracker.app"
-```
+The app is not notarized. If macOS blocks it, choose "Open Anyway" in System Settings > Privacy & Security.
 
-Run `make test` for parser, connection argument, process cancellation, and timeout tests. Run `make package` to create `build/Tailscale-GPU-Tracker.zip`. The build targets the Mac's current architecture and uses local ad-hoc signing.
+## Build from source
 
-Quit the running app before opening a UI preview with sample machines and isolated preferences:
+Requires Swift 6.0 or later.
 
 ```sh
-swift run TailscaleGPUTracker --preview
+make test
+make run
 ```
 
-The preview is available in debug builds and makes no network connections.
+`make package` creates a ZIP in `build/`.

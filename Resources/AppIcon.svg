@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1254" height="1254" viewBox="0 0 1254 1254">
+  <title>Tailscale GPU Tracker</title>
+  <defs>
+    <path id="tile-shape" d="M364 74 H890 C1079 74 1184 174 1184 365 V889 C1184 1075 1084 1179 891 1179 H364 C173 1179 70 1075 70 888 V365 C70 174 174 74 364 74 Z"/>
+    <clipPath id="tile-clip"><use href="#tile-shape"/></clipPath>
+    <linearGradient id="tile-base" x1="0.25" y1="0" x2="0.75" y2="1">
+      <stop stop-color="#0a2c68"/>
+      <stop offset="0.4" stop-color="#051d4b"/>
+      <stop offset="1" stop-color="#020f2b"/>
+    </linearGradient>
+    <radialGradient id="tile-light" cx="0.5" cy="0.04" r="0.9" gradientTransform="translate(0 -.02) scale(1 1.15)">
+      <stop stop-color="#20549d" stop-opacity=".46"/>
+      <stop offset=".6" stop-color="#082759" stop-opacity=".05"/>
+      <stop offset="1" stop-color="#00102e" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tile-edge" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#4f8ad2" stop-opacity=".38"/>
+      <stop offset=".15" stop-color="#2a5b97" stop-opacity=".13"/>
+      <stop offset="1" stop-color="#000815" stop-opacity=".65"/>
+    </linearGradient>
+    <filter id="tile-edge-soften" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+    <linearGradient id="ring-track" gradientUnits="userSpaceOnUse" x1="414" y1="272" x2="787" y2="655">
+      <stop stop-color="#5576ad"/>
+      <stop offset=".52" stop-color="#163e80"/>
+      <stop offset="1" stop-color="#082657"/>
+    </linearGradient>
+    <linearGradient id="ring-blue" gradientUnits="userSpaceOnUse" x1="440" y1="720" x2="835" y2="300">
+      <stop stop-color="#007cff"/>
+      <stop offset=".35" stop-color="#00aaff"/>
+      <stop offset=".74" stop-color="#08ccfd"/>
+      <stop offset="1" stop-color="#24defa"/>
+    </linearGradient>
+    <linearGradient id="ring-rim" gradientUnits="userSpaceOnUse" x1="440" y1="250" x2="810" y2="710">
+      <stop stop-color="#b6f6ff" stop-opacity=".9"/>
+      <stop offset=".5" stop-color="#60dfff" stop-opacity=".65"/>
+      <stop offset="1" stop-color="#0875ff" stop-opacity=".4"/>
+    </linearGradient>
+    <filter id="ring-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <path id="progress-arc" d="M638.7 251.3 A224 224 0 1 1 404 453.5"/>
+    <linearGradient id="machine-front" gradientUnits="userSpaceOnUse" x1="627" y1="839" x2="627" y2="1037">
+      <stop stop-color="#e9ebf0"/>
+      <stop offset=".34" stop-color="#c8cdd8"/>
+      <stop offset=".74" stop-color="#b6bfce"/>
+      <stop offset="1" stop-color="#abb8ce"/>
+    </linearGradient>
+    <linearGradient id="machine-side" gradientUnits="userSpaceOnUse" x1="386" y1="930" x2="866" y2="930">
+      <stop stop-color="#f8fafc" stop-opacity=".5"/>
+      <stop offset=".2" stop-color="#8f9bb0" stop-opacity=".2"/>
+      <stop offset=".48" stop-color="#bec6d5" stop-opacity="0"/>
+      <stop offset=".83" stop-color="#e4e9f2" stop-opacity=".24"/>
+      <stop offset="1" stop-color="#8190aa" stop-opacity=".26"/>
+    </linearGradient>
+    <linearGradient id="machine-top" gradientUnits="userSpaceOnUse" x1="623" y1="772" x2="629" y2="886">
+      <stop stop-color="#eceeef"/>
+      <stop offset=".57" stop-color="#f9fafb"/>
+      <stop offset="1" stop-color="#f3f5f8"/>
+    </linearGradient>
+    <linearGradient id="machine-outline" x1="0" y1="0" x2=".4" y2="1">
+      <stop stop-color="#ffffff" stop-opacity=".95"/>
+      <stop offset=".5" stop-color="#f2f6ff" stop-opacity=".3"/>
+      <stop offset="1" stop-color="#f1f6ff" stop-opacity=".65"/>
+    </linearGradient>
+    <linearGradient id="slot-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#34404f"/>
+      <stop offset="1" stop-color="#525b69"/>
+    </linearGradient>
+    <filter id="machine-shadow" x="-35%" y="-50%" width="170%" height="230%">
+      <feGaussianBlur stdDeviation="21"/>
+    </filter>
+    <filter id="status-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <path id="machine-body" d="M387 847 C387 806 425 773 468 773 H785 C826 773 866 808 866 850 V954 C866 1007 834 1037 786 1037 H468 C419 1037 386 1008 386 954 Z"/>
+    <path id="machine-lid" d="M466 772 H787 C804 772 817 782 830 799 L852 827 C860 838 865 848 860 859 C853 876 837 883 811 884 H442 C417 884 401 879 394 866 C386 852 389 839 401 822 L422 795 C434 779 447 772 466 772 Z"/>
+  </defs>
+
+  <g id="background">
+    <use href="#tile-shape" fill="url(#tile-base)"/>
+    <use href="#tile-shape" fill="url(#tile-light)"/>
+    <g clip-path="url(#tile-clip)">
+      <use href="#tile-shape" fill="none" stroke="url(#tile-edge)" stroke-width="12" filter="url(#tile-edge-soften)"/>
+      <use href="#tile-shape" fill="none" stroke="url(#tile-edge)" stroke-width="2"/>
+    </g>
+  </g>
+
+  <g id="ring" transform="translate(627 420) scale(0.78) translate(-627 -475)">
+    <circle cx="627" cy="475" r="224" fill="none" stroke="url(#ring-track)" stroke-width="59" opacity=".88"/>
+    <use href="#progress-arc" fill="none" stroke="#006bff" stroke-width="74" stroke-linecap="round" opacity=".62" filter="url(#ring-glow)"/>
+    <use href="#progress-arc" fill="none" stroke="url(#ring-rim)" stroke-width="61" stroke-linecap="round"/>
+    <use href="#progress-arc" fill="none" stroke="url(#ring-blue)" stroke-width="58" stroke-linecap="round"/>
+  </g>
+
+  <g id="machine" transform="translate(627 882) scale(1.30) translate(-627 -904.5)">
+    <ellipse cx="627" cy="1042" rx="219" ry="38" fill="#000713" opacity=".85" filter="url(#machine-shadow)"/>
+    <use href="#machine-body" fill="url(#machine-front)"/>
+    <use href="#machine-body" fill="url(#machine-side)"/>
+    <use href="#machine-body" fill="none" stroke="url(#machine-outline)" stroke-width="1.8"/>
+    <path d="M397 861 C407 883 427 890 451 891 H804 C831 891 852 880 858 861" fill="none" stroke="#8a96aa" stroke-width="5" opacity=".25"/>
+    <use href="#machine-lid" fill="url(#machine-top)" stroke="#ffffff" stroke-width="1.7" stroke-opacity=".75"/>
+    <path d="M402 868 C412 879 425 883 447 883 H809 C829 883 845 878 853 869" fill="none" stroke="#ffffff" stroke-width="3" stroke-opacity=".66"/>
+    <rect x="459" y="936" width="121" height="34" rx="17" fill="url(#slot-fill)" stroke="#f3f7ff" stroke-width="1.7" stroke-opacity=".86"/>
+    <path d="M477 939 H560" fill="none" stroke="#172638" stroke-width="2" opacity=".3"/>
+    <circle cx="763" cy="950" r="23" fill="#76c8ff" opacity=".45" filter="url(#status-glow)"/>
+    <circle cx="763" cy="950" r="17.5" fill="#f9fdff" stroke="#d4edff" stroke-width="1.5"/>
+  </g>
+</svg>
