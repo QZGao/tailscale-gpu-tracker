@@ -66,10 +66,24 @@ func rejectsInvalidUsernames(_ username: String) {
 }
 
 @Test func ordinarySSHRetainsExistingKnownHosts() throws {
-    let machine = Machine(id: "one", name: "gpu", dnsName: "gpu.example.ts.net", addresses: [], online: true)
+    let machine = Machine(id: "one", name: "gpu", dnsName: "gpu.example.ts.net", addresses: ["100.64.0.1"], online: true)
     let args = try GPUClient.arguments(machine: machine, username: "ubuntu", knownHosts: nil)
     #expect(!args.contains { $0.hasPrefix("UserKnownHostsFile=") })
     #expect(args.contains("StrictHostKeyChecking=yes"))
+}
+
+@Test func ordinarySSHUsesConfiguredHostnameAndHostKeyAlias() async throws {
+    let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let config = folder.appendingPathComponent("ssh_config")
+    try "Host gpu.example.ts.net\n  Hostname 192.0.2.10\n  HostKeyAlias trusted-gpu\n".write(to: config, atomically: true, encoding: .utf8)
+    let machine = Machine(id: "one", name: "gpu", dnsName: "gpu.example.ts.net", addresses: ["100.64.0.1"], online: true)
+    let args = try GPUClient.arguments(machine: machine, username: "ubuntu", knownHosts: nil)
+    let result = try await ProcessRunner().run(executable: "/usr/bin/ssh", arguments: ["-G", "-F", config.path] + args, timeout: 2)
+    #expect(result.status == 0)
+    #expect(result.output.contains("hostname 192.0.2.10\n"))
+    #expect(result.output.contains("hostkeyalias trusted-gpu\n"))
 }
 
 @Test func newMachinesAreUncheckedAndPreferencesRoundTrip() throws {

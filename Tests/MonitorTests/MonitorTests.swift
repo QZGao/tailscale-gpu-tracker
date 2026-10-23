@@ -104,3 +104,114 @@ private func makeStore(gate: QueryGate) -> (MonitorStore, String) {
     try await Task.sleep(for: .milliseconds(30))
     #expect(row.state.reading?.total == 25)
 }
+
+private actor RecoveryClient {
+    var failure: String?
+    var holdDiscovery = false
+    private var continuation: CheckedContinuation<Void, Never>?
+    private(set) var discoveries = 0
+    private(set) var queriedIDs: [String] = []
+
+    func configure(failure: String? = nil, holdDiscovery: Bool = false) {
+        self.failure = failure
+        self.holdDiscovery = holdDiscovery
+    }
+
+    func discover() async throws -> TailnetSnapshot {
+        discoveries += 1
+        if holdDiscovery { await withCheckedContinuation { continuation = $0 } }
+        if let failure { throw TrackerError(failure) }
+        return try TailnetSnapshot.parse(Data(#"""
+        {"BackendState":"Running","Peer":{
+          "a":{"ID":"one","HostName":"gpu-1","DNSName":"gpu-1.example.ts.net.","Online":true},
+          "b":{"ID":"two","HostName":"gpu-2","DNSName":"gpu-2.example.ts.net.","Online":true}
+        }}
+        """#.utf8))
+    }
+
+    func releaseDiscovery() {
+        holdDiscovery = false
+        continuation?.resume()
+        continuation = nil
+    }
+
+    func fetch(_ machine: Machine) -> GPUReading {
+        queriedIDs.append(machine.id)
+        return GPUReading(gpus: [GPU(index: 0, utilization: 90)])
+    }
+}
+
+@MainActor
+private func storeWithDiscoveryFailure(_ client: RecoveryClient) async throws -> (MonitorStore, String) {
+    let suite = "io.qzgao.TailscaleGPUTracker.test.\(UUID().uuidString)"
+    let store = MonitorStore(defaults: UserDefaults(suiteName: suite)!,
+        discover: { try await client.discover() }, fetchGPU: { machine, _ in await client.fetch(machine) })
+    store.refreshMachines()
+    try await waitUntil { store.hasDiscovered }
+    for row in store.rows {
+        store.setUsername("ubuntu", for: row)
+        store.setEnabled(true, for: row)
+    }
+    try await waitUntil { store.rows.allSatisfy { $0.state.reading != nil } }
+    await client.configure(failure: "Tailscale disconnected")
+    store.refreshMachines(pollAfter: true)
+    try await waitUntil { store.discoveryError != nil }
+    return (store, suite)
+}
+
+@Test @MainActor func cellRetryRediscoversOnceAndQueriesOnlyRequestedMachine() async throws {
+    let client = RecoveryClient()
+    let (store, suite) = try await storeWithDiscoveryFailure(client)
+    defer { store.stop(); UserDefaults().removePersistentDomain(forName: suite) }
+    await client.configure(holdDiscovery: true)
+    let row = try #require(store.rows.first)
+    store.refresh(row)
+    store.refresh(row)
+    try await waitUntil { await client.discoveries == 3 }
+    #expect(row.state == .loading(previous: nil))
+    await client.releaseDiscovery()
+    try await waitUntil { row.state.reading != nil }
+    #expect(store.discoveryError == nil)
+    #expect(await client.discoveries == 3)
+    #expect(await client.queriedIDs.count == 3)
+    #expect(await client.queriedIDs.last == row.id)
+    #expect(store.rows[1].state == .failed("Tailscale disconnected"))
+}
+
+@Test @MainActor func toolbarRecoveryRefreshesEnabledRows() async throws {
+    let client = RecoveryClient()
+    let (store, suite) = try await storeWithDiscoveryFailure(client)
+    defer { store.stop(); UserDefaults().removePersistentDomain(forName: suite) }
+    await client.configure()
+    store.refreshMachines()
+    try await waitUntil { store.rows.allSatisfy { $0.state.reading != nil } }
+    #expect(store.discoveryError == nil)
+    #expect(await client.queriedIDs.count == 4)
+}
+
+@Test @MainActor func failedCellRetryShowsNewDiscoveryErrorWithoutLooping() async throws {
+    let client = RecoveryClient()
+    let (store, suite) = try await storeWithDiscoveryFailure(client)
+    defer { store.stop(); UserDefaults().removePersistentDomain(forName: suite) }
+    await client.configure(failure: "Tailscale needs login")
+    store.refresh(store.rows[0])
+    try await waitUntil { store.discoveryError == "Tailscale needs login" }
+    #expect(store.rows[0].state == .failed("Tailscale needs login"))
+    #expect(await client.discoveries == 3)
+    #expect(await client.queriedIDs.count == 2)
+}
+
+@Test @MainActor func uncheckingRowDuringRecoveryPreventsGPUQuery() async throws {
+    let client = RecoveryClient()
+    let (store, suite) = try await storeWithDiscoveryFailure(client)
+    defer { store.stop(); UserDefaults().removePersistentDomain(forName: suite) }
+    await client.configure(holdDiscovery: true)
+    let row = store.rows[0]
+    store.refresh(row)
+    try await waitUntil { await client.discoveries == 3 }
+    store.setEnabled(false, for: row)
+    await client.releaseDiscovery()
+    try await waitUntil { !store.discovering }
+    #expect(row.state == .idle)
+    #expect(await client.queriedIDs.count == 2)
+}

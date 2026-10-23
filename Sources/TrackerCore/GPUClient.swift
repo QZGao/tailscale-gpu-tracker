@@ -28,11 +28,11 @@ public struct GPUClient: Sendable {
             // These keys come from the authenticated local Tailscale daemon.
             args += ["-o", "UserKnownHostsFile=\"\(knownHosts)\"", "-o", "GlobalKnownHostsFile=/dev/null",
                      "-o", "HostKeyAlias=\(host)", "-o", "CheckHostIP=no"]
-        }
-        // Use the Tailscale IP for transport, even if MagicDNS is disabled locally.
-        // SSH still matches the machine's MagicDNS name against the user's SSH config.
-        if let address = machine.addresses.first, address.unicodeScalars.allSatisfy(allowed.contains) {
-            args += ["-o", "Hostname=\(address)"]
+            // With an explicit host-key identity, IP transport also works without MagicDNS.
+            // Ordinary SSH keeps its configured hostname and known_hosts lookup identity.
+            if let address = machine.addresses.first, address.unicodeScalars.allSatisfy(allowed.contains) {
+                args += ["-o", "Hostname=\(address)"]
+            }
         }
         args += ["-l", username, host, query]
         return args

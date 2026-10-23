@@ -33,6 +33,8 @@ final class MonitorStore: ObservableObject {
     private let discover: @Sendable () async throws -> TailnetSnapshot
     private let fetchGPU: @Sendable (Machine, String) async throws -> GPUReading
     private var discoveryTask: Task<Void, Never>?
+    private var refreshAllAfterDiscovery = false
+    private var retryAfterDiscovery = Set<String>()
     private var queries: [String: Task<Void, Never>] = [:]
     private var queryIDs: [String: UUID] = [:]
     private var timer: Timer?
@@ -64,6 +66,8 @@ final class MonitorStore: ObservableObject {
     func stop() {
         timer?.invalidate()
         discoveryTask?.cancel()
+        refreshAllAfterDiscovery = false
+        retryAfterDiscovery.removeAll()
         for task in queries.values { task.cancel() }
         NSWorkspace.shared.notificationCenter.removeObserver(self)
     }
@@ -74,6 +78,8 @@ final class MonitorStore: ObservableObject {
         discoveryTask?.cancel()
         discoveryTask = nil
         discovering = false
+        refreshAllAfterDiscovery = false
+        retryAfterDiscovery.removeAll()
         for row in selectedRows {
             cancelQuery(row.id)
             row.state = row.state.reading.map(MonitorState.ready) ?? .idle
@@ -82,6 +88,11 @@ final class MonitorStore: ObservableObject {
     }
 
     func refreshMachines(pollAfter: Bool = false) {
+        refreshAllAfterDiscovery = refreshAllAfterDiscovery || pollAfter || discoveryError != nil
+        beginDiscovery()
+    }
+
+    private func beginDiscovery() {
         guard discoveryTask == nil else { return }
         discovering = true
         discoveryTask = Task { [weak self] in
@@ -98,7 +109,9 @@ final class MonitorStore: ObservableObject {
                         if row.machine != machine {
                             cancelQuery(row.id)
                             row.machine = machine
-                            row.state = row.state.reading.map(MonitorState.ready) ?? .idle
+                            if case .loading = row.state {
+                                row.state = row.state.reading.map(MonitorState.ready) ?? .idle
+                            }
                             changedMachines.insert(row.id)
                         }
                         return row
@@ -108,9 +121,12 @@ final class MonitorStore: ObservableObject {
                 tailnet = snapshot.name
                 discoveryError = nil
                 hasDiscovered = true
-                if pollAfter { refreshSelected() }
-                else {
-                    for row in selectedRows where row.state == .idle || changedMachines.contains(row.id) { refresh(row) }
+                if refreshAllAfterDiscovery {
+                    refreshSelected()
+                } else if !retryAfterDiscovery.isEmpty {
+                    for row in selectedRows where retryAfterDiscovery.contains(row.id) { query(row) }
+                } else {
+                    for row in selectedRows where row.state == .idle || changedMachines.contains(row.id) { query(row) }
                 }
             } catch {
                 guard !Task.isCancelled else { return }
@@ -120,6 +136,8 @@ final class MonitorStore: ObservableObject {
                     row.state = .failed(error.localizedDescription)
                 }
             }
+            refreshAllAfterDiscovery = false
+            retryAfterDiscovery.removeAll()
             discovering = false
             discoveryTask = nil
             changed()
@@ -151,9 +169,21 @@ final class MonitorStore: ObservableObject {
         changed()
     }
 
-    func refreshSelected() { for row in selectedRows { refresh(row) } }
+    private func refreshSelected() { for row in selectedRows { query(row) } }
 
     func refresh(_ row: MachineRow) {
+        guard row.preferences.enabled, queries[row.id] == nil else { return }
+        if discoveryError != nil {
+            retryAfterDiscovery.insert(row.id)
+            row.state = .loading(previous: row.state.reading)
+            beginDiscovery()
+            changed()
+        } else {
+            query(row)
+        }
+    }
+
+    private func query(_ row: MachineRow) {
         guard row.preferences.enabled, queries[row.id] == nil else { return }
         if let discoveryError {
             row.state = .failed(discoveryError)
