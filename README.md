@@ -1,10 +1,10 @@
 <p align="center">
   <img src="Resources/AppIcon.svg" width="128" height="128" alt="Tailscale GPU Tracker icon">
   <h1 align="center">Tailscale GPU Tracker
-    <span style="display: block">
+    <div align="center">
       <img src="https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fraw.githubusercontent.com%2FQZGao%2Ftailscale-gpu-tracker%2Frefs%2Fheads%2Fmain%2FResources%2FInfo.plist&search=%3Ckey%3ECFBundleShortVersionString%3C%2Fkey%3E%3Cstring%3E(.*%3F)%3C%2Fstring%3E&replace=v%241&style=plastic&label=version&color=orange" alt="package version">
       <img src="https://github.com/QZGao/tailscale-gpu-tracker/actions/workflows/test.yml/badge.svg" alt="test workflow badge">
-    </span>
+    </div>
   </h1>
 </p>
 
