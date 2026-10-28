@@ -38,7 +38,6 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           python3 scripts/verify_release.py --arch arm64 --tag "$RELEASE_TAG"
-          test -f ".github/release-notes/$RELEASE_TAG.md"
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: macos-arm64
@@ -73,17 +72,15 @@ jobs:
           set -euo pipefail
           version="${RELEASE_TAG#v}"
           asset="dist/Tailscale-GPU-Tracker-$RELEASE_TAG-macos-arm64.zip"
-          notes=".github/release-notes/$RELEASE_TAG.md"
           test -f "$asset"
-          test -f "$notes"
           if draft=$(gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' 2>/dev/null); then
             if [ "$draft" != true ]; then
               echo "Release $RELEASE_TAG is already published; refusing to replace it." >&2
               exit 1
             fi
             gh release upload "$RELEASE_TAG" "$asset" --clobber
-            gh release edit "$RELEASE_TAG" --title "Tailscale GPU Tracker $version" --notes-file "$notes"
+            gh release edit "$RELEASE_TAG" --title "Tailscale GPU Tracker $version"
           else
-            gh release create "$RELEASE_TAG" "$asset" --draft --verify-tag \
-              --title "Tailscale GPU Tracker $version" --notes-file "$notes"
+            gh release create "$RELEASE_TAG" "$asset" --draft --verify-tag --generate-notes \
+              --title "Tailscale GPU Tracker $version"
           fi
