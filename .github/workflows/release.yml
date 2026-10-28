@@ -79,8 +79,8 @@ jobs:
               exit 1
             fi
             gh release upload "$RELEASE_TAG" "$asset" --clobber
-            gh release edit "$RELEASE_TAG" --title "Tailscale GPU Tracker $version"
+            gh release edit "$RELEASE_TAG" --title "v$version"
           else
             gh release create "$RELEASE_TAG" "$asset" --draft --verify-tag --generate-notes \
-              --title "Tailscale GPU Tracker $version"
+              --title "v$version"
           fi
