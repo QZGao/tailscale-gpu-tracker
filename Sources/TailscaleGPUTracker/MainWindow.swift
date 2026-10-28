@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import TrackerCore
+import UniformTypeIdentifiers
 
 @MainActor
 final class MainWindow: NSWindowController {
@@ -69,7 +70,10 @@ private struct MachinesView: View {
                 .padding(.horizontal, 24).padding(.bottom, 16)
             }
 
-            Table(store.rows) {
+            Table(of: MachineRow.self) {
+                TableColumn("") { row in
+                    MachineDragHandle(row: row)
+                }.width(22)
                 TableColumn("") { row in
                     MonitorToggle(row: row, store: store)
                 }.width(32)
@@ -85,6 +89,14 @@ private struct MachinesView: View {
                 TableColumn("GPU usage") { row in
                     UsageCell(row: row, store: store)
                 }.width(min: 290, ideal: 360, max: 900)
+            } rows: {
+                ForEach(store.rows) { row in
+                    TableRow(row)
+                }
+                .dropDestination(for: MachineDragItem.self) { index, items in
+                    guard items.count == 1, let item = items.first else { return }
+                    store.moveMachine(item.id, toOffset: index)
+                }
             }
             .tableStyle(.inset(alternatesRowBackgrounds: true))
             .overlay {
@@ -110,6 +122,42 @@ private struct MachinesView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
+    }
+}
+
+private struct MachineDragItem: Codable, Transferable {
+    let id: String
+
+    static var transferRepresentation: some TransferRepresentation {
+        CodableRepresentation(contentType: UTType(exportedAs: "io.qzgao.TailscaleGPUTracker.machine-order", conformingTo: .data))
+    }
+}
+
+private struct MachineDragHandle: View {
+    @ObservedObject var row: MachineRow
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(0..<2) { _ in
+                VStack(spacing: 3) {
+                    ForEach(0..<3) { _ in
+                        Circle().frame(width: 3, height: 3)
+                    }
+                }
+            }
+        }
+        .foregroundStyle(.secondary)
+        .frame(width: 22, height: 42)
+        .contentShape(Rectangle())
+        .draggable(MachineDragItem(id: row.id)) {
+            Text(row.displayName).padding(8)
+        }
+        .onHover { hovering in
+            if hovering { NSCursor.openHand.push() }
+            else { NSCursor.pop() }
+        }
+        .help("Drag to reorder machines and the menu bar")
+        .accessibilityLabel("Reorder \(row.displayName)")
     }
 }
 

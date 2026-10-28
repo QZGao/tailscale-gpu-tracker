@@ -29,6 +29,7 @@ final class MonitorStore: ObservableObject {
     var onChange: (() -> Void)?
 
     private var preferences: [String: MachinePreferences]
+    private var machineOrder: [String]
     private let defaults: UserDefaults
     private let discover: @Sendable () async throws -> TailnetSnapshot
     private let fetchGPU: @Sendable (Machine, String) async throws -> GPUReading
@@ -48,6 +49,7 @@ final class MonitorStore: ObservableObject {
         preferences = defaults.data(forKey: "machines").flatMap {
             try? JSONDecoder().decode([String: MachinePreferences].self, from: $0)
         } ?? [:]
+        machineOrder = defaults.stringArray(forKey: "machineOrder") ?? []
     }
 
     var selectedRows: [MachineRow] { rows.filter { $0.preferences.enabled } }
@@ -104,7 +106,7 @@ final class MonitorStore: ObservableObject {
                 var changedMachines = Set<String>()
                 let presentIDs = Set(snapshot.machines.map(\.id))
                 for id in Array(queries.keys) where !presentIDs.contains(id) { cancelQuery(id) }
-                rows = snapshot.machines.map { machine in
+                let discoveredRows = snapshot.machines.map { machine in
                     if let row = existing[machine.id] {
                         if row.machine != machine {
                             cancelQuery(row.id)
@@ -117,6 +119,17 @@ final class MonitorStore: ObservableObject {
                         return row
                     }
                     return MachineRow(machine: machine, preferences: preferences[machine.id] ?? MachinePreferences())
+                }
+                var remaining = Dictionary(uniqueKeysWithValues: discoveredRows.map { ($0.id, $0) })
+                rows = machineOrder.compactMap { remaining.removeValue(forKey: $0) }
+                    + discoveredRows.filter { remaining[$0.id] != nil }
+                if !machineOrder.isEmpty {
+                    let knownIDs = Set(machineOrder)
+                    let newIDs = rows.map(\.id).filter { !knownIDs.contains($0) }
+                    if !newIDs.isEmpty {
+                        machineOrder.append(contentsOf: newIDs)
+                        defaults.set(machineOrder, forKey: "machineOrder")
+                    }
                 }
                 tailnet = snapshot.name
                 discoveryError = nil
@@ -142,6 +155,25 @@ final class MonitorStore: ObservableObject {
             discoveryTask = nil
             changed()
         }
+    }
+
+    func moveMachine(_ id: String, toOffset destination: Int) {
+        guard let source = rows.firstIndex(where: { $0.id == id }),
+              (0...rows.count).contains(destination) else { return }
+        let insertion = destination > source ? destination - 1 : destination
+        guard source != insertion else { return }
+        var reordered = rows
+        let row = reordered.remove(at: source)
+        reordered.insert(row, at: insertion)
+        rows = reordered
+
+        // Keep absent machines in their saved slots so they return to the same order.
+        let presentIDs = Set(rows.map(\.id))
+        var visibleOrder = rows.map(\.id).makeIterator()
+        machineOrder = machineOrder.map { presentIDs.contains($0) ? visibleOrder.next()! : $0 }
+        machineOrder.append(contentsOf: visibleOrder)
+        defaults.set(machineOrder, forKey: "machineOrder")
+        changed()
     }
 
     func setEnabled(_ enabled: Bool, for row: MachineRow) {

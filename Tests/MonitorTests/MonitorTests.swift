@@ -19,7 +19,7 @@ private actor QueryGate {
 }
 
 @MainActor
-private func waitUntil(_ predicate: () async -> Bool) async throws {
+func waitUntil(_ predicate: () async -> Bool) async throws {
     for _ in 0..<100 {
         if await predicate() { return }
         try await Task.sleep(for: .milliseconds(10))

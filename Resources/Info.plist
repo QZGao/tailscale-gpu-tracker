@@ -16,5 +16,13 @@
     <key>NSHighResolutionCapable</key><true/>
     <key>LSUIElement</key><true/>
     <key>LSMultipleInstancesProhibited</key><true/>
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key><string>io.qzgao.TailscaleGPUTracker.machine-order</string>
+            <key>UTTypeDescription</key><string>Machine order</string>
+            <key>UTTypeConformsTo</key><array><string>public.data</string></array>
+        </dict>
+    </array>
 </dict>
 </plist>
